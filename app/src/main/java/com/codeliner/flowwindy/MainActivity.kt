@@ -29,19 +29,15 @@ class MainActivity : AppCompatActivity() {
     private fun launchFlows(flowsCount: Int) {
         if (flowsCount < 1) return //TODO: дописать логику на то, что больше 0
 
-        val flows = mutableListOf<Flow<Int>>() //создать список, который реализует интерфейс Iterable, имеет метод merge
-
-        for (index in 0 until flowsCount) {
-            flows.add(
+        (0 until flowsCount) //создать коллекцию значений
+            .map { value ->
                 flow {
-                    delay((index + 1) * 100L)
-                    emit(index + 1)
-                }
-            ) //добавить flow
-        } //для каждого числа
-
-        flows.merge() //мержить все flows в один
-            .runningReduce {accumulator, value ->
+                    delay((value + 1) * 100L)
+                    emit(value + 1)
+                } //преобразовать массив значений в массив flow
+            }
+            .merge() //мержить все flows в один
+            .runningReduce { accumulator, value ->
                 accumulator + value
             }
             .onEach {
