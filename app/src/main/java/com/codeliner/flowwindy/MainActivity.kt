@@ -2,7 +2,9 @@ package com.codeliner.flowwindy
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.codeliner.flowwindy.databinding.ActivityMainBinding
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -18,108 +20,36 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        binding.button.setOnClickListener { launchFlow() }
-    }
-
-
-    // пытался сделать массив Flow из полученного значения, не получилось
-//    private fun launchFlow() {
-//        val N = binding.editTextNumber.text.toString().toInt()
-//        val myArray = Array(N) { i -> i }
-//        val myFlow: kotlinx.coroutines.flow.Flow<Int> = flow { myArray }
-//        lifecycleScope.launchWhenStarted {
-//            myFlow.collect {
-//                delay(500)
-//                binding.textView.text = it.toString()
-//            }
-//        }
-//    }
-
-
-    //не работает
-//    private fun launchFlow() {
-//        val N = binding.editTextNumber.text.toString().toInt()
-//        val _myFlow = MutableSharedFlow<Int>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-//        val myFlow: SharedFlow<Int> = _myFlow.asSharedFlow()
-//        lifecycleScope.launch {
-//            _myFlow.emitAll(
-//                flow {
-//                    emit(N)
-//                }
-//            )
-//        }
-//    }
-
-
-
-    //не работает
-//    private fun launchFlow() {
-//        val N = binding.editTextNumber.text.toString().toInt()
-//        val myFlow: Flow<Int> = flow<Int> {
-//            delay(500)
-//            binding.textView.text = this.toString()
-//        }.shareIn(lifecycleScope, started = SharingStarted.Lazily, replay = 1)
-//    }
-
-    // уменьшил объем кода
-    private fun launchFlow() {
-        //val N = binding.editTextNumber.text.toString().toInt()
-        //val myDelay = N * 100
-        val myFlow: kotlinx.coroutines.flow.Flow<Int> = flowOf(1, 2, 3, 10)
-        lifecycleScope.launchWhenStarted {
-            myFlow.collect {
-                delay(500)
-                binding.textView.text = it.toString()
-            }
+        binding.button.setOnClickListener {
+            val flowsCount = binding.editTextNumber.text.toString().toIntOrNull() ?: 0
+            launchFlows(flowsCount)
         }
     }
 
-    //запустил поток, выводятся значения из flow по очереди
-//    private fun launchFlow() {
-//        val N = binding.editTextNumber.text.toString().toInt()
-//        val myDelay = N * 100
-//        val myFlow: kotlinx.coroutines.flow.Flow<Int> = flowOf(1, 2, 3, 10)
-//        lifecycleScope.launchWhenStarted {
-//            myFlow
-//                .onEach {
-//                    delay(500)
-//                    binding.textView.text = it.toString()
-//                }
-//                .collect()
-//        }
-//    }
+    private fun launchFlows(flowsCount: Int) {
+        if (flowsCount < 1) return //TODO: дописать логику на то, что больше 0
 
-//    private fun launchFlow() {
-//        val N = binding.editTextNumber.text.toString().toInt()
-//        for (i in 1..N) {
-//            val flow: kotlinx.coroutines.flow.Flow<Int> = flowOf(i)
-//            runBlocking {
-//                flow
-//                    .collect {
-//                        delay(1000)
-//                        binding.textView.text = it.toString()
-//                    }
-//            }
-//        }
-//    }
+        val flows = mutableListOf<Flow<Int>>() //создать список, который реализует интерфейс Iterable, имеет метод merge
 
-//    private fun launchFlow() = runBlocking {
-//        val N = binding.editTextNumber.text.toString().toInt() //получить число, введенное в поле ввода
-//        val flow: kotlinx.coroutines.flow.Flow<Int> = flowOf(1,2,3,10)
-//        flow
-//            .collect {
-//                delay(1000)
-//                binding.textView.text = it.toString()
-//        }
+        for (index in 0 until flowsCount) {
+            flows.add(
+                flow {
+                    delay((index + 1) * 100L)
+                    emit(index + 1)
+                }
+            ) //добавить flow
+        } //для каждого числа
 
-    //val result = N+1 // емитит значение index + 1
-    //binding.textView.text = result.toString() // результат вывести в текстовое поле
-
-    // каждое обновление должно находиться на новой строчке.
-    // Необходимо создать N Flow<Int>
-    // после задержки в (index + 1) * 100, емитит значение index + 1
-    // Результирующий Flow должен суммировать значения всех N Flow
-    // Суммирующий Flow должен возвращать значение после обновления каждого из N Flow
+        flows.merge() //мержить все flows в один
+            .runningReduce {accumulator, value ->
+                accumulator + value
+            }
+            .onEach {
+                val currentText = binding.textView.text.toString()
+                binding.textView.text = "$currentText\n$it"
+            } // собрать значения
+            .launchIn(lifecycleScope) //избавиться от вложенности, запустить collect
+    }
 
 }
 
@@ -151,4 +81,4 @@ class MainActivity : AppCompatActivity() {
  Результат: 1 3 6 10 15 21 28
 
 Задание необходимо реализовать на языке Kotlin.
- Результатом выполнения задания должен быть .apk файл и исходный код. */
+Результатом выполнения задания должен быть .apk файл и исходный код. */
