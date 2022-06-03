@@ -2,14 +2,10 @@ package com.codeliner.flowwindy
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.codeliner.flowwindy.databinding.ActivityMainBinding
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
@@ -21,13 +17,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.button.setOnClickListener {
+            binding.textView.text = "" //очищать поле результата после каждого нажатия
             val flowsCount = binding.editTextNumber.text.toString().toIntOrNull() ?: 0
             launchFlows(flowsCount)
         }
     }
 
     private fun launchFlows(flowsCount: Int) {
-        if (flowsCount < 1) return //TODO: дописать логику на то, что больше 0
 
         (0 until flowsCount) //создать коллекцию значений
             .map { value ->
@@ -39,22 +35,22 @@ class MainActivity : AppCompatActivity() {
             .merge() //мержить все flows в один
             .runningReduce { accumulator, value ->
                 accumulator + value
-            }
+            } //сложить новое значение с суммой предыдущих
             .onEach {
                 val currentText = binding.textView.text.toString()
                 binding.textView.text = "$currentText\n$it"
-            } // собрать значения
+            } // вывести значения
             .launchIn(lifecycleScope) //избавиться от вложенности, запустить collect
     }
-
 }
 
-// TODO: разработать Flow, который суммирует значения других Flow.
-/* 1. OK UI - на экране должно быть 3 элемента.
- OK Поле ввода, кнопка запуска и текстовое поле для вывода информации.
- OK При нажатии на кнопку получаем N - число введенное в поле ввода
+/*
+Разработать Flow, который суммирует значения других Flow.
+ 1. UI - на экране должно быть 3 элемента.
+ Поле ввода, кнопка запуска и текстовое поле для вывода информации.
+ При нажатии на кнопку получаем N - число введенное в поле ввода
  и запускаем Flow.
- OK Результат работы нужно вывести в текстовое поле.
+ Результат работы нужно вывести в текстовое поле.
  Каждое обновление должно находиться на новой строчке.
 
 2. Flow. Необходимо создать N Flow<Int>, каждый из которых после задержки в (index + 1) * 100, емитит значение index + 1.
@@ -77,4 +73,5 @@ class MainActivity : AppCompatActivity() {
  Результат: 1 3 6 10 15 21 28
 
 Задание необходимо реализовать на языке Kotlin.
-Результатом выполнения задания должен быть .apk файл и исходный код. */
+Результатом выполнения задания должен быть .apk файл и исходный код.
+*/
